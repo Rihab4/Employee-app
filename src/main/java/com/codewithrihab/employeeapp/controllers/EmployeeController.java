@@ -4,6 +4,7 @@ import com.codewithrihab.employeeapp.dtos.CreateEmployeeRequest;
 import com.codewithrihab.employeeapp.dtos.EmployeeDto;
 import com.codewithrihab.employeeapp.service.EmployeeService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,6 +23,7 @@ public class EmployeeController {
     }
 
     @PostMapping("/add")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<EmployeeDto> add(
             @ModelAttribute CreateEmployeeRequest createEmployeeRequest,
             @RequestPart(required = false) MultipartFile photo) throws Exception {
@@ -35,9 +37,10 @@ public class EmployeeController {
 
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR', 'USER')")
     public ResponseEntity<EmployeeDto> getEmployeeById(@PathVariable Long id) {
         try {
-            EmployeeDto  dto = employeeService.getEmployeeById(id);
+            EmployeeDto dto = employeeService.getEmployeeById(id);
             return ResponseEntity.ok(dto);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
@@ -45,6 +48,7 @@ public class EmployeeController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         try {
             employeeService.deleteEmployee(id);
@@ -54,7 +58,8 @@ public class EmployeeController {
         }
     }
 
-    @GetMapping
+    @GetMapping("/getAll")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR', 'USER')")
     public ResponseEntity<List<EmployeeDto>> getAllEmployees() {
         List<EmployeeDto> employees = employeeService.getAllEmployees();
         return ResponseEntity.ok(employees);

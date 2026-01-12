@@ -21,8 +21,14 @@ public class Employee {
     private String email;
     @Column(name = "location")
     private String location;
+    @Column(name = "phone")
+    private String phone;
+    @Column(name = "salary")
+    private double salary;
     @Column(name = "role")
     private String role;
     @Column(name = "photo_url")
     private String photoUrl;
+    @Column(name = "status")
+    private String status;
 }

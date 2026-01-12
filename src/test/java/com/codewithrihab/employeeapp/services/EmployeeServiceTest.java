@@ -6,7 +6,7 @@ import com.codewithrihab.employeeapp.entities.Employee;
 import com.codewithrihab.employeeapp.mappers.EmployeeDtoMapper;
 import com.codewithrihab.employeeapp.repositories.EmployeeRepository;
 import com.codewithrihab.employeeapp.service.EmployeeService;
-import com.codewithrihab.employeeapp.service.S3StorageService;
+import com.codewithrihab.employeeapp.service.ImageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,17 +32,17 @@ public class EmployeeServiceTest {
     @Mock
     private EmployeeDtoMapper employeeDtoMapper;
     @Mock
-    private S3StorageService  s3StorageService;
+    private ImageService imageService;
 
     private EmployeeService employeeService;
 
     @BeforeEach
     void setUp() {
-        employeeService = new EmployeeService(employeeRepository, employeeDtoMapper,  s3StorageService);
+        employeeService = new EmployeeService(employeeRepository, employeeDtoMapper, imageService);
     }
 
     @Test
-    void createEmployeeAlreadyExistInDb() throws Exception {
+    void createEmployeeAlreadyExistInDb() {
         // given
         CreateEmployeeRequest emp = new CreateEmployeeRequest();
         MultipartFile photo = new MockMultipartFile("photo", "test.jpg", "image/png", MediaType.IMAGE_JPEG_VALUE.getBytes());
