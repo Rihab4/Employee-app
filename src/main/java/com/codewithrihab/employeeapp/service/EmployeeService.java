@@ -16,29 +16,28 @@ public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final EmployeeDtoMapper employeeDtoMapper;
-    private final S3StorageService  s3StorageService;
+    private final ImageService imageService;
 
 
     public EmployeeService(EmployeeRepository employeeRepository,
-                           EmployeeDtoMapper employeeDtoMapper,
-                           S3StorageService s3StorageService
+                           EmployeeDtoMapper employeeDtoMapper, ImageService imageService
     ) {
         this.employeeRepository = employeeRepository;
         this.employeeDtoMapper = employeeDtoMapper;
-        this.s3StorageService = s3StorageService;
+        this.imageService = imageService;
     }
 
     public EmployeeDto createEmployee(CreateEmployeeRequest request, MultipartFile photo) throws Exception {
 
+        String uploadDirectory = "src/main/resources/static/images/ads";
         if (employeeRepository.existsByEmail(request.getEmail())) {
             throw new Exception("Email already exists");
         }
 
         Employee emp = employeeDtoMapper.toEntity(request);
 
-        if (photo != null && !photo.isEmpty()) {
-            emp.setPhotoUrl(s3StorageService.uploadEmployeePhoto(photo));
-            System.out.println(emp.getPhotoUrl());
+        if (photo != null && !photo.isEmpty() && ImageService.isValidImage(photo)) {
+            emp.setPhotoUrl(imageService.saveImageToStorage(uploadDirectory, photo));
         }
 
         return employeeDtoMapper.toDto(employeeRepository.save(emp));

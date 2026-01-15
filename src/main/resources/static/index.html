@@ -2,76 +2,72 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Directory</title>
+    <title>Company employees</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        h1 { margin-bottom: 20px; }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f6f8;
+        }
 
-        #addBtn {
-            background-color: #4CAF50;
-            padding: 10px 20px;
-            color: white;
-            border: none;
-            cursor: pointer;
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
         }
-        #addBtn:hover { background-color: #45a049; }
+
+        h1 {
+            margin: 0;
+        }
+
+        button {
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+        }
+
+        #logoutBtn {
+            background: #f44336;
+            color: white;
+        }
+
+        #addBtn {
+            background: #4CAF50;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        #addBtn:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
 
         .employee-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            display: inline;
+            width: 200px;
             gap: 20px;
         }
 
-        .employee-card {
-            position: relative;
-            border: 1px solid #ccc;
-            padding: 15px;
-            text-align: center;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            cursor: pointer;
-        }
-        .employee-card:hover {
-            background-color: #f8f8f8;
-        }
         .employee-card img {
-            width: 100%;
-            height: 150px;
+            width: 300px;
+            height: 200px;
             object-fit: cover;
             border-radius: 6px;
             margin-bottom: 10px;
         }
 
-        .delete-btn {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            background: red;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 25px;
-            height: 25px;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: bold;
-        }
-        .delete-btn:hover {
-            background: darkred;
-        }
 
-        /* Modal */
         .modal {
             display: none;
             position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
+            inset: 0;
+            background: rgba(0, 0, 0, .5);
             justify-content: center;
             align-items: center;
         }
+
         .modal-content {
             background: white;
             padding: 20px;
@@ -80,6 +76,15 @@
             text-align: center;
             position: relative;
         }
+
+        .modal-content img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
         .close-modal {
             position: absolute;
             top: 5px;
@@ -96,67 +101,94 @@
 </head>
 <body>
 
-<h1>Employee Directory</h1>
-<button id="addBtn" onclick="window.location='add.html'">Add Employee</button>
+<div class="top-bar">
+    <h1>Employee Directory</h1>
+    <button id="logoutBtn">Logout</button>
+</div>
+
+<button id="addBtn">Add a new employee</button>
 
 <div id="employeeGrid" class="employee-grid"></div>
 
-<!-- Modal -->
 <div id="detailsModal" class="modal">
     <div class="modal-content">
         <button class="close-modal" onclick="closeModal()">X</button>
-        <h2 id="modalName"></h2>
-        <p><strong>Email:</strong> <span id="modalEmail"></span></p>
-        <p><strong>Location:</strong> <span id="modalLocation"></span></p>
-        <p><strong>Role:</strong> <span id="modalRole"></span></p>
+        <img
+                id="modalPhoto"
+                src="placeholder.png"
+                alt="Employee photo"
+                title="Employee photo">
+        <h3 id="modalName"></h3>
+        <p>Email: <span id="modalEmail"></span></p>
+        <p>Location: <span id="modalLocation"></span></p>
+        <p>Role: <span id="modalRole"></span></p>
     </div>
 </div>
 
 <script>
-    async function loadEmployees() {
-        try {
-            const resp = await fetch('/employees');
-            if (!resp.ok) return;
+    let roles = [];
 
-            const employees = await resp.json();
-            const grid = document.getElementById('employeeGrid');
-            grid.innerHTML = '';
+    async function loadUser() {
+        const resp = await fetch('/user', {credentials: 'include'});
+        if (!resp.ok) {
+            window.location.href = 'login.html';
+            return;
+        }
 
-            employees.forEach(emp => {
-                const card = document.createElement('div');
-                card.className = 'employee-card';
+        const data = await resp.json();
+        roles = data.roles.map(r => r.authority);
+        configureUI();
+    }
 
-                // OPEN MODAL on click
-                card.onclick = () => openModal(emp);
-
-                // Delete button
-                const del = document.createElement('button');
-                del.className = 'delete-btn';
-                del.textContent = "X";
-                del.onclick = (e) => {
-                    e.stopPropagation(); // prevent modal
-                    deleteEmployee(emp.id);
-                };
-                card.appendChild(del);
-
-                // Photo
-                const img = document.createElement('img');
-                img.src = emp.photoUrl || 'placeholder.png';
-                card.appendChild(img);
-
-                // Name
-                const name = document.createElement('div');
-                name.textContent = emp.firstName + ' ' + emp.lastName;
-                card.appendChild(name);
-
-                grid.appendChild(card);
-            });
-        } catch (err) {
-            console.error(err);
+    function configureUI() {
+        const addBtn = document.getElementById('addBtn');
+        if (!roles.includes('ROLE_ADMIN') && !roles.includes('ROLE_HR')) {
+            addBtn.disabled = true;
+            addBtn.title = "Not allowed";
+        } else {
+            addBtn.onclick = () => window.location = 'add.html';
         }
     }
 
+    async function loadEmployees() {
+        const resp = await fetch('/employees/getAll', {credentials: 'include'});
+        if (!resp.ok) return;
+
+        const employees = await resp.json();
+        const grid = document.getElementById('employeeGrid');
+        grid.innerHTML = '';
+
+        employees.forEach(emp => {
+            const card = document.createElement('div');
+            card.className = 'employee-card';
+            card.onclick = () => openModal(emp);
+
+            // Delete button only for admin
+            if (roles.includes('ROLE_ADMIN')) {
+                const del = document.createElement('button');
+                del.className = 'delete-btn';
+                del.textContent = 'X';
+                del.onclick = e => {
+                    e.stopPropagation();
+                    deleteEmployee(emp.id);
+                };
+                card.appendChild(del);
+            }
+
+            const img = document.createElement('img');
+            img.src = emp.photoUrl ? `/images/ads/${emp.photoUrl}` : 'placeholder.png';
+            card.appendChild(img);
+
+            const name = document.createElement('div');
+            name.textContent = emp.firstName + ' ' + emp.lastName;
+            card.appendChild(name);
+
+            grid.appendChild(card);
+        });
+    }
+
     function openModal(emp) {
+        document.getElementById('modalPhoto').src = emp.photoUrl ? `/images/ads/${emp.photoUrl}` : 'placeholder.png';
         document.getElementById('modalName').textContent = emp.firstName + ' ' + emp.lastName;
         document.getElementById('modalEmail').textContent = emp.email || '';
         document.getElementById('modalLocation').textContent = emp.location || '';
@@ -169,13 +201,25 @@
     }
 
     async function deleteEmployee(id) {
-        if (!confirm("Are you sure you want to delete this employee?")) return;
-        const resp = await fetch(`/employees/${id}`, { method: 'DELETE' });
+        if (!confirm('Delete this employee?')) return;
+
+        const resp = await fetch(`/employees/${id}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+
         if (resp.ok) loadEmployees();
-        else alert("Failed to delete employee");
+        else alert('Not allowed');
     }
 
-    loadEmployees();
+    async function logout() {
+        await fetch('/logout', {method: 'POST', credentials: 'include'});
+        window.location.href = 'login.html';
+    }
+
+    document.getElementById('logoutBtn').onclick = logout;
+
+    loadUser().then(loadEmployees);
 </script>
 
 </body>
